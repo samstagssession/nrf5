@@ -1,0 +1,93 @@
+Prerequisites
+-------------
+  stlink ( tested with v1.4.0-47-gae717b9 )
+  openocd ( tested with 0.10.0+dev-00512-gfd04460 )
+
+
+SDK setup
+---------
+# 1. Make devel folder
+mkdir nrf5/
+cd nrf5/
+
+# 2. Extract SDK
+unzip ~/Downloads/nRF5_SDK_12.3.0_d7731ad.zip
+( https://developer.nordicsemi.com/nRF5_SDK/nRF5_SDK_v12.x.x/nRF5_SDK_12.3.0_d7731ad.zip )
+
+# 3. Extract compiler
+tar xjf ~/Downloads/gcc-arm-none-eabi-7-2018-q2-update-linux.tar.bz2
+( https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-rm/7-2018q2/gcc-arm-none-eabi-7-2018-q2-update-linux.tar.bz2 )
+
+# 4. Makefile.posix
+vi ~/nrf5/nRF5_SDK_12.3.0_d7731ad/components/toolchain/gcc/Makefile.posix
+GNU_INSTALL_ROOT := /home/test/nrf5/gcc-arm-none-eabi-7-2018-q2-update
+GNU_VERSION := 7.3.1
+GNU_PREFIX := arm-none-eabi
+
+# 5. openocd.cfg
+vi ~/nrf5/openocd.cfg
+#nRF51822 Target
+source [find interface/stlink-v2.cfg]
+transport select hla_swd
+set WORKAREASIZE 0x4000
+source [find target/nrf51.cfg]
+
+# 6. New project folder
+cd ~/nrf5/nRF5_SDK_12.3.0_d7731ad/
+mkdir my_projects/
+cd my_projects/
+cp -a ~/nrf5/nRF5_SDK_12.3.0_d7731ad/examples/peripheral/blinky/ .
+cd blinky/
+cp -a pca10028/ generic_nrf51822/
+cd generic_nrf51822/blank/armgcc/
+
+# 7. Makefile adjusting
+vi ~/nrf5/nRF5_SDK_12.3.0_d7731ad/my_projects/blinky/generic_nrf51822/blank/armgcc/Makefile
+###### change lines like this ######
+PROJECT_NAME     := generic_nrf51822 
+TARGETS          := nrf51822_xxaa 
+SDK_ROOT := ../../../../..
+$(OUTPUT_DIRECTORY)/nrf51822_xxaa.out: \ 
+  LINKER_SCRIPT := $(SDK_ROOT)/components/toolchain/gcc/nrf51_xxaa.ld 
+CFLAGS += -DNRF51822 
+ASMFLAGS += -DNRF51822 
+default: nrf51822_xxaa 
+##### following lines not needed - remove or comment out #####
+#flash: $(OUTPUT_DIRECTORY)/nrf51422_xxac.hex 
+# @echo Flashing: $< 
+# nrfjprog --program $< -f nrf51 --sectorerase 
+# nrfjprog --reset -f nrf51 
+# 
+#erase: 
+# nrfjprog --eraseall -f nrf52
+
+# 8. Makefile.common adjusting
+vi ~/nrf5/nRF5_SDK_12.3.0_d7731ad/components/toolchain/gcc/Makefile.common
+flash: $(OUTPUT_DIRECTORY)/nrf51822_xxaa.hex
+	openocd -f ../$(SDK_ROOT)/openocd.cfg -c "program $(OUTPUT_DIRECTORY)/$(TARGETS).hex verify reset exit"
+flash_softdevice:
+	openocd -f ../$(SDK_ROOT)/openocd.cfg -c 'init_reset halt; init; halt; nrf51 mass_erase; program $(SDK_ROOT)/components/softdevice/s130/hex/s130_nrf51_2.0.1_softdevice.hex verify; exit'
+      
+# 9. Connect LED and R to P21
+
+# 10. Build and upload
+cd ~/nrf5/nRF5_SDK_12.3.0_d7731ad/my_projects/blinky/generic_nrf51822/blank/armgcc/
+make flash
+
+
+vi convenience
+--------------
+ctags
+  cd ~/nrf5/nRF5_SDK_12.3.0_d7731ad/
+  ctags -R .
+
+~/.vimrc
+  set tags=~/nrf5/nRF5_SDK_12.3.0_d7731ad/tags
+  map <c-c> :w<cr> :make<cr>
+  map <c-u> :w<cr> :make flash<cr>
+
+shortcuts
+  ctrl+] jump to definition
+  ctrl+t jump back
+  ctrl+c compile
+  ctrl+u upload
