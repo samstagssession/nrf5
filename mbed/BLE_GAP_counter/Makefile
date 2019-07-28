@@ -474,9 +474,9 @@ $(PROJECT)-combined.hex: $(PROJECT).hex
 	+@echo "===== hex file ready to flash: $(OBJDIR)/$@ ====="
 
 flash_combined: $(PROJECT)-combined.hex
-	$(OPENOCD_PATH)/openocd -f $(PWD)/../openocd.cfg -c 'program $< verify reset exit'
+	$(OPENOCD_PATH)/openocd -f $(PWD)/../../openocd.cfg -c 'program $< verify reset exit'
 flash: $(PROJECT).hex
-	$(OPENOCD_PATH)/openocd -f $(PWD)/../openocd.cfg -c 'program $< verify reset exit'
+	$(OPENOCD_PATH)/openocd -f $(PWD)/../../openocd.cfg -c 'program $< verify reset exit'
 
 # Rules
 ###############################################################################
